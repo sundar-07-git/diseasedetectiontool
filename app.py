@@ -1,7 +1,7 @@
 import streamlit as st
-from google import genai
-from google.genai import types
+from groq import Groq
 import json
+import time
 
 # 1. Page Configuration
 st.set_page_config(
@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Injecting Custom CSS for Professional Dark Theme
+# 2. Injecting Custom CSS for Professional Dark Theme (Glassmorphism Style)
 st.markdown("""
     <style>
     .stApp {
@@ -57,18 +57,21 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. API Key Setup
-# 3. API Key Setup
-API_KEY = st.secrets["GEMINI_API_KEY"]
-client = genai.Client(api_key=API_KEY)
+# 3. Secure Key Instantiation (Groq Integration Pipeline)
+# Pulls safely from local secrets.toml or your Streamlit Cloud Advanced parameters
+try:
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+except Exception:
+    st.error("GROQ_API_KEY missing from secrets environment vault. Access restricted.")
+    st.stop()
 
-# 4. Header Layout
+# 4. Header Layout Matrix
 st.markdown('<p class="premium-title">AURAHEALTH CLINICAL CORE</p>', unsafe_allow_html=True)
 st.markdown("<p style='color: #8b949e; font-size: 1.05rem; margin-top:-10px;'>Predictive Diagnostic Triage & Specialist Routing Architecture</p>", unsafe_allow_html=True)
 st.markdown("<hr style='border-color: rgba(240,246,252,0.1); margin-top: 10px; margin-bottom: 30px;'>", unsafe_allow_html=True)
 st.caption("CRITICAL NOTICE: This software functions strictly as an educational screening prototype. It does not replace formal clinical validation or professional medical consultation.")
 
-# 5. Patient Profile Demographics Terminal
+# 5. Patient Profile Demographics Terminal (Unified Grid Alignment)
 st.markdown("<h3 style='color:#fff; margin-bottom: 15px; margin-top: 20px;'>Patient Demographics Matrix</h3>", unsafe_allow_html=True)
 
 col_p1, col_p2, col_p3, col_p4 = st.columns(4)
@@ -91,24 +94,34 @@ user_symptoms = st.text_area(
     label_visibility="collapsed"
 )
 
-# Action Execution Button
+# Action Execution Interface
 st.markdown("<br>", unsafe_allow_html=True)
 col_b1, col_b2, col_b3 = st.columns([2, 1, 2])
 with col_b2:
     analyze_btn = st.button("RUN DIAGNOSTIC ASSESSMENT", use_container_width=True, key="btn_run")
 
-# 7. Deep Analytics Output Processing
+# 7. Deep Analytics Engine Processing
 if analyze_btn:
+    # Anti-Abuse Rate Limitation Algorithm
+    if "last_request_time" in st.session_state:
+        time_since_last = time.time() - st.session_state["last_request_time"]
+        if time_since_last < 10:
+            st.error(f"Rate protection active. Please wait {int(10 - time_since_last)} seconds before requesting another triage matrix.")
+            st.stop()
+            
     if user_symptoms.strip() == "":
         st.toast("Input field null. Please provide clinical symptoms.")
     elif p_name.strip() == "":
         st.toast("Patient identifier missing. Form submission rejected.")
     else:
-        with st.spinner("Processing clinical data strings and compiling pathology mapping..."):
+        # Logging current request confirmation timestamp
+        st.session_state["last_request_time"] = time.time()
+        
+        with st.spinner("Processing clinical data strings and compiling pathology mapping via Groq..."):
             
             symptom_payload = (
                 f"Patient Profile: Identifier={p_name}, Weight={p_weight}kg, Age={p_age} Years, Gender={p_gender}. "
-                f"Symptom Manifestations: {user_symptoms}"
+                f"Symptom Presentation: {user_symptoms}"
             )
             
             system_prompt = (
@@ -121,16 +134,18 @@ if analyze_btn:
             )
             
             try:
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=symptom_payload,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_prompt,
-                        response_mime_type="application/json" 
-                    )
+                # Call Groq's high-speed engine using native structural JSON masking
+                response = client.chat.completions.create(
+                    model="openai/gpt-oss-120b", 
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": symptom_payload}
+                    ],
+                    response_format={"type": "json_object"}
                 )
                 
-                medical_data = json.loads(response.text)
+                # Extract and parse structural payload values
+                medical_data = json.loads(response.choices[0].message.content)
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 st.markdown(f"#### Clinical Summary Report | Subject: {p_name} ({p_age} Years, {p_gender}, {p_weight} kg)")
